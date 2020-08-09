@@ -1,0 +1,42 @@
+version: "2.1"
+
+jobs:
+  plan:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Initialize terraform
+          command: docker-compose run terraform init
+      - run:
+          name: Plan terraform changes
+          command: docker-compose run terraform plan -out=plan
+      - persist_to_workspace:
+          root: ./terraform
+          paths:
+            - .terraform
+            - plan
+
+  apply:
+    machine: true
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ./terraform
+      - run:
+          name: Apply terraform changes
+          command: docker-compose run terraform apply plan
+
+workflows:
+  version: 2
+
+  terraform:
+    jobs:
+      - plan
+      - apply:
+          requires:
+            - plan
+          filters:
+            branches:
+              only:
+                - main
